@@ -32,7 +32,7 @@ def get_html(url, selector, sleep=5, retries=5):
 def scrape_season(season):
     url = f"https://www.basketball-reference.com/leagues/NBA_{season}_games.html"
     html = get_html(url, "#content .filter")
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, features="lxml")
     links = soup.find_all("a")
     href = [l["href"] for l in links]
     standing_pages = [f"https://basketball-reference.com{l}" for l in href]
@@ -46,9 +46,36 @@ def scrape_season(season):
         with open(save_path, "w+") as f:
             f.write(html)
 
+#for season in seasons:
+#    scrape_season(season)
+
+standings_files = os.listdir(standings_dir)
+
+def scrape_game(standings_file):
+    with open(standings_file, "r") as f:
+        html = f.read()
+    soup = BeautifulSoup(html, features="lxml" )
+    links = soup.find_all("a")
+    hrefs = [l.get("href") for l in links]
+    box_scores = [f"https://www.basketball-reference.com{l}" for l in hrefs if l and "boxscore" in l and ".html"]
+
+    for url in box_scores:
+        save_path = os.path.join(scores_dir, url.split("l")[-1])
+        if os.path.exists(save_path):
+            continue
+
+        html = get_html(url, "#content")
+        if not html:
+            continue
+        with open(save_path, "w+") as f:
+            f.write(html)
+
+standings_files = [s for s in standings_files if ".html" in s ]
+
 for season in seasons:
-    scrape_season(season)
-
-
-
-
+    files = [s for s in standings_files if str(season) in s]
+    
+    for f in files:
+        filepath = os.path.join(standings_dir, f)
+        
+        scrape_game(filepath)
