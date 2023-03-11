@@ -2,14 +2,15 @@ import os
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 import time
+import pandas as pd
 
 seasons = list(range(2016, 2023))
 
-data_dir = "data2"
+data_dir = "data"
 standings_dir = os.path.join(data_dir, "standings")
 scores_dir = os.path.join(data_dir, "scores")
 
-def get_html(url, selector, sleep=5, retries=5):
+def get_html(url, selector, sleep=5, retries=3):
     html = None
     for i in range(1, retries+1):
         time.sleep(sleep*i)
@@ -32,12 +33,12 @@ def get_html(url, selector, sleep=5, retries=5):
 def scrape_season(season):
     url = f"https://www.basketball-reference.com/leagues/NBA_{season}_games.html"
     html = get_html(url, "#content .filter")
-    soup = BeautifulSoup(html, features="lxml")
+    soup = BeautifulSoup(html)
     links = soup.find_all("a")
     href = [l["href"] for l in links]
-    standing_pages = [f"https://basketball-reference.com{l}" for l in href]
+    standings_pages = [f"https://www.basketball-reference.com{l}" for l in href]
 
-    for url in standing_pages:
+    for url in standings_pages:
         save_path = os.path.join(standings_dir, url.split("/")[-1])
         if os.path.exists(save_path):
             continue
@@ -54,20 +55,20 @@ standings_files = os.listdir(standings_dir)
 def scrape_game(standings_file):
     with open(standings_file, "r") as f:
         html = f.read()
-    soup = BeautifulSoup(html, features="lxml" )
+    soup = BeautifulSoup(html)
     links = soup.find_all("a")
     hrefs = [l.get("href") for l in links]
-    box_scores = [f"https://www.basketball-reference.com{l}" for l in hrefs if l and "boxscore" in l and ".html"]
+    box_scores = [f"https://www.basketball-reference.com{l}" for l in hrefs if l and "boxscore" in l and '.html' in l]
 
     for url in box_scores:
-        save_path = os.path.join(scores_dir, url.split("l")[-1])
+        save_path = os.path.join(scores_dir, url.split("/")[-1])
         if os.path.exists(save_path):
             continue
 
         html = get_html(url, "#content")
         if not html:
             continue
-        with open(save_path, "w+") as f:
+        with open(save_path, "w+", encoding='utf-8') as f:
             f.write(html)
 
 for season in seasons:
@@ -75,5 +76,5 @@ for season in seasons:
     
     for f in files:
         filepath = os.path.join(standings_dir, f)
-        
+
         scrape_game(filepath)
