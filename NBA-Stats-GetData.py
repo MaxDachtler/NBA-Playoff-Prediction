@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 import time
 
-seasons = list(range(2015, 2023))
+seasons = list(range(2016, 2023))
 
 data_dir = "data2"
 standings_dir = os.path.join(data_dir, "standings")
@@ -69,8 +69,6 @@ def scrape_game(standings_file):
             continue
         with open(save_path, "w+") as f:
             f.write(html)
-
-standings_files = [s for s in standings_files if ".html" in s ]
 
 for season in seasons:
     files = [s for s in standings_files if str(season) in s]
